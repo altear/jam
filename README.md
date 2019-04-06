@@ -1,50 +1,66 @@
 # JAM: Just Another Minesweeper
 
-JAM is the most delicious minesweeper. 
+Andre Telfer, 2019
 
 ![#delicious](./docs/_static/jam.jpg) 
 
 <center> Photo by Jonathan Pielmayer on Unsplash </center>
 
-## How to Play?
+## Running
 
->  &ldquo; **the only winning move is not to play**.&rdquo;  - WarGames, 1983
-
-
+```
+pipenv run python manage.py runserver
+```
 
 ## Usage
 
-To start the Django backend 
-
 ```
-pipenv run python backend/manage.py runserver
-```
-
-To start the React frontend (served by Node)
-
-```
-cd frontend && npm start
+pipenv run manage.py runserver
 ```
 
 ## Requirements
 
-- Python 3.7
+- PostgreSQL 11.2 - Stable
+- Python 3.6
   - pipenv
-- Node 
 
 ## Installation
 
-The only dependencies are Django and React
-
-### Django Installation
-
-From the root folder, install Django with
+Install Python/Django dependencies with pipenv
 
 ``` 
 pipenv install .
 ```
 
-### React Installation
+Install React dependencies with npm
 
+```
+npm install .
+```
 
+## Configuration
+
+### Database
+
+Configure Django to use the database using the `config.json` file 
+
+Postgres commands for creating user/database (change the password):
+
+```
+psql
+CREATE USER jam WITH PASSWORD 'put_your_password_here' CREATEDB;
+CREATE DATABASE jamdb WITH OWNER jam;
+```
+
+## Tests
+
+Django tests
+
+```
+pipenv run python manage.py test
+```
+
+---
+
+> &ldquo; **the only winning move is not to play**.&rdquo;  - WarGames, 1983
 
