@@ -31,49 +31,15 @@ class Minesweeper(models.Model):
     # yeah right.
     is_winner = models.BooleanField(default=False)
 
-    def generate_game(self, m=8, n=8, mines=20):
-        '''
-        Initialize a new game
-
-        :param m: number of rows
-        :param n: number of columns
-        :param mines: number of mines
-        :return:
-        '''
-
-        empty_array = np.zeros(shape=(m,n), dtype=bool)
-
-        # Select random indices to place mines
-        indices = list(np.ndindex(n, m))  # Create a list of all possible indices in the game
-        selected_indices = np.random.choice(np.arange(0, len(indices)), size=mines, replace=False)
-        mine_indices = np.array(indices)[selected_indices]
-
-        # Place the mines
-        rows, cols = mine_indices[:, 0], mine_indices[:, 1]
-        mine_positions = empty_array.copy()
-        mine_positions[rows, cols] = 1
-        self.mine_positions = mine_positions.tolist()
-
-        # Visible and flag states start empty
-        self.visible_state = empty_array.tolist()
-        self.flag_state = empty_array.tolist()
-
-        # Count the adjacent mines for each cell. Pass mines as param in case we want to generate mines in the future
-        self.neighbors = self.count_adjacent_mines(mine_positions).tolist()
-
-        # todo make a is_first_move bool so the player cannot lose on their first turn
-
-    def flood_fill_safe_cells(self, starting_point):
+    def flood_fill_safe_cells(self, starting_position):
         '''
         Given a starting coordinate, make all surrounding cells that do not border a mine visible.
         - Requires dimensions m > 2, n > 2 for m x n matrix
 
-        :param point: tuple(i, j)
-        :return:
+        :param position: tuple(i, j)
         '''
-
         # Floodfill implementation using a queue and breadth-first search
-        queue = [starting_point]
+        queue = [starting_position]
         visited = set()
         m, n = np.array(self.mine_positions).shape # Get boundaries
 
@@ -133,11 +99,11 @@ class Minesweeper(models.Model):
             # Add new points onto the current queue
             queue.extend(filtered_new_points)
 
-    def render_player_view(self):
+    def get_client_state_data(self):
         '''
-        Return the list representation of what the player will see
+        The data the client needs to display the game
 
-        :return: dictionary
+        :return: message dictionary
         '''
 
         visible = np.array(self.visible_state)
@@ -163,37 +129,9 @@ class Minesweeper(models.Model):
             'is_winner': self.is_winner
         }
 
-    def is_valid_move(self, point):
-        '''
-        Check to see if a possible player move is within the boundaries and
-
-        :return:
-        '''
-        m, n = np.array(self.visible_state).shape # boundaries
-        i, j = point
-        return (i >= 0 and i < m) and \
-            (j >=0 and j < n) and \
-            not self.visible_state[i][j] and \
-            not self.flag_state[i][j] and \
-            not self.is_loser and \
-            not self.is_winner
-
-    def is_losing_move(self, point):
-        '''
-        Check to see if the player lost
-
-        :param point:
-        :return:
-        '''
-        i, j = point
-        if self.mine_positions[i][j]:
-            return True
-        return False
-
     def has_won(self):
         '''
         Check to see if the player has won
-
         :return:
         '''
 
@@ -215,10 +153,77 @@ class Minesweeper(models.Model):
             np.ones(shape=visible.shape)
         )
 
+    def is_game_over(self):
+        return self.is_winner or self.is_loser
+
+    def is_position_in_boundaries(self, position):
+        i, j = position
+        m, n = np.array(self.visible_state).shape  # boundaries
+        return (i >= 0 and i < m) and (j >=0 and j < n)
+
+    def is_mine_at_position(self, position):
+        i, j = position
+        return bool(self.mine_positions[i][j])
+
+    def is_flag_at_position(self, position):
+        i, j = position
+        return bool(self.flag_state[i][j])
+
+    def is_position_visible(self, position):
+        i, j = position
+        return bool(self.visible_state[i][j])
+
+    def is_valid_clear_area_position(self, position):
+        '''
+        Can the player clear this area of mines?
+        :return: True/False
+        '''
+        return self.is_position_in_boundaries(position) and \
+            not self.is_flag_at_position(position) and \
+            not self.is_position_visible(position)
+
+    def clear_area(self, position):
+        '''
+        Clear an area of mines
+        :param position:
+        :return:
+        '''
+        if self.is_game_over() or not self.is_valid_clear_area_position(position):
+            return
+
+        # Player clicked on a mine - player dies.
+        if self.is_mine_at_position(position):
+            self.is_loser = True
+            return
+
+        # Make surrounding areas visible if they have no neighboring mines
+        self.flood_fill_safe_cells(position)
+
+        if self.has_won():
+            self.is_winner = True
+
+    def plant_flag(self, position):
+        '''
+        This will add/delete a flag at a valid position
+
+        :return:
+        '''
+        if self.is_game_over() or not self.is_position_in_boundaries(position) or self.is_position_visible(position):
+            return
+
+        # Add or remove the flag
+        i, j = position
+        if self.is_flag_at_position(position):
+            self.flag_state[i][j] = 0
+        else:
+            self.flag_state[i][j] = 1
+
+        if self.has_won():
+            self.is_winner = True
+
     def count_adjacent_mines(self, mine_positions):
         '''
         Return an array that holds the counts to adjacent mines
-
         :param mine_positions:
         :return: adjacent_mines_count:
         '''
@@ -237,6 +242,36 @@ class Minesweeper(models.Model):
             shift_right(shift_down(mine_positions)),
         ]
         return np.sum(np.stack(stack), axis=0)
+
+    def create_game(self, m=8, n=8, mines=20):
+        '''
+        Initialize a new game
+        :param m: number of rows
+        :param n: number of columns
+        :param mines: number of mines
+        :return:
+        '''
+        # todo make a is_first_move:bool, so the player cannot lose on their first turn
+        # todo create model.Manager for Minesweeper and move this method into it
+        empty_array = np.zeros(shape=(m,n), dtype=bool)
+
+        # Select random indices to place mines
+        indices = list(np.ndindex(n, m))  # Create a list of all possible indices in the game
+        selected_indices = np.random.choice(np.arange(0, len(indices)), size=mines, replace=False)
+        mine_indices = np.array(indices)[selected_indices]
+
+        # Place the mines
+        rows, cols = mine_indices[:, 0], mine_indices[:, 1]
+        mine_positions = empty_array.copy()
+        mine_positions[rows, cols] = 1
+        self.mine_positions = mine_positions.tolist()
+
+        # Visible and flag states start empty
+        self.visible_state = empty_array.tolist()
+        self.flag_state = empty_array.tolist()
+
+        # Count the adjacent mines for each cell. Pass mines as param in case we want to generate mines in the future
+        self.neighbors = self.count_adjacent_mines(mine_positions).tolist()
 
 # todo consider moving array operations to new file
 def shift_down(arr):

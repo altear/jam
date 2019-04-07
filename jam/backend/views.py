@@ -12,7 +12,7 @@ def load_game(request, game_uid):
     :return:
     '''
     game = get_object_or_404(Minesweeper, uid=game_uid)
-    return JsonResponse(game.render_player_view())
+    return JsonResponse(game.get_client_state_data())
 
 def clear_area(request, game_uid):
     '''
@@ -30,26 +30,11 @@ def clear_area(request, game_uid):
         data = json.loads(request.body)
         i, j = int(data['i']), int(data['j'])
 
-        # Check if valid move
-        if not game.is_valid_move((i, j)):
-            raise HttpResponseBadRequest()
-
-        # Check if player just lost
-        if game.is_losing_move((i, j)):
-            game.is_loser = True
-        # Player is still alive
-        else:
-            game.flood_fill_safe_cells((i,j))
-
-            # Check if player is winner
-            if game.has_won():
-                game.is_winner = True
-
+        game.clear_area(position=(i,j))
         game.save(force_update=True)
         return load_game(request, game_uid)
 
-    except Exception as e:
-        print(e)
+    except:
         raise HttpResponseBadRequest
 
 def plant_flag(request, game_uid):
@@ -68,27 +53,17 @@ def plant_flag(request, game_uid):
         data = json.loads(request.body)
         i, j = int(data['i']), int(data['j'])
 
-        # Check if valid move
-        if not game.is_valid_move((i, j)):
-            raise HttpResponseBadRequest()
-
-        # Plant the flag!
-        game.flag_state[i][j] = 1
-
-        # Did we win?
-        if game.has_won():
-            game.is_winner = True
-
+        # Plant the flag and update
+        game.plant_flag(position=(i, j))
         game.save(force_update=True)
         return load_game(request, game_uid)
-
     except:
-        raise HttpResponseBadRequest()
+        raise HttpResponseBadRequest
 
+# todo Note: This is in the view because it could be added to the API(if I have time), giving user control of map size
 def create_game(m, n, mines):
     '''
-    Create a new mine sweeper game. This is in the view because it could be used to give the user control over
-    difficulty in the future.
+    Create a new mine sweeper game.
 
     :param m: rows
     :param n: cols
@@ -97,7 +72,7 @@ def create_game(m, n, mines):
     '''
     # Generate a new game using any parameters, or use the default ones
     new_game = Minesweeper.objects.create()
-    new_game.generate_game(m,n,mines)
+    new_game.create_game(m,n,mines)
     new_game.save()
 
     return {

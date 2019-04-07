@@ -37,7 +37,7 @@ class MinesweeperTest(TestCase):
             [0, 1, 1],
             [0, 0, 0],
             [1, 0, 1]
-        ])
+        ]).astype(int)
 
         flood_fill_starting_point = (0, 0)
         expected_visible_state = np.array([
@@ -45,7 +45,7 @@ class MinesweeperTest(TestCase):
             [1, 1, 1],
             [1, 1, 1],
             [1, 1, 1]
-        ])
+        ]).astype(int)
 
         # Create the new game
         new_game = Minesweeper.objects.create()
@@ -55,24 +55,24 @@ class MinesweeperTest(TestCase):
 
         # Call the flood_fill to update the visible state
         new_game.flood_fill_safe_cells(flood_fill_starting_point)
-        assert np.array_equal(new_game.visible_state, expected_visible_state)
+        assert np.array_equal(np.array(new_game.visible_state).astype(bool), expected_visible_state.astype(bool))
 
     def test_create_game_small(self):
         new_game = Minesweeper.objects.create()
-        new_game.generate_game(m=5,n=5,mines=10)
+        new_game.create_game(m=5,n=5,mines=10)
 
     def test_create_game_medium(self):
         new_game = Minesweeper.objects.create()
-        new_game.generate_game(m=10, n=10, mines=10)
+        new_game.create_game(m=10, n=10, mines=10)
 
     def test_create_game_large(self):
         new_game = Minesweeper.objects.create()
-        new_game.generate_game(m=30, n=30, mines=10)
+        new_game.create_game(m=30, n=30, mines=10)
         assert new_game.uid
 
     def test_load_game(self):
         new_game = Minesweeper.objects.create()
-        new_game.generate_game(m=30, n=30, mines=10)
+        new_game.create_game(m=30, n=30, mines=10)
         new_game.save()
 
         request = self.factory.get(f'/api/games/{new_game.uid}')
@@ -81,7 +81,7 @@ class MinesweeperTest(TestCase):
 
     def test_clear_area(self):
         new_game = Minesweeper.objects.create()
-        new_game.generate_game(m=30, n=30, mines=10)
+        new_game.create_game(m=30, n=30, mines=10)
         new_game.save()
 
         data = json.dumps({'i': 0, 'j': 0})
@@ -97,13 +97,13 @@ class MinesweeperTest(TestCase):
 
         # Create a new game
         new_game = Minesweeper.objects.create()
-        new_game.generate_game(m=5, n=5, mines=0)
+        new_game.create_game(m=5, n=5, mines=0)
         new_game.save()
 
         # Submit a move
         data = json.dumps({'i': 2, 'j': 2})
         request = self.factory.post(f'/api/games/{new_game.uid}/move', data, 'application/json')
-        response = clear_area(request, new_game.uid)
+        clear_area(request, new_game.uid)
 
         # Check if response is all 1s like expected
         new_game = Minesweeper.objects.get(uid=new_game.uid)
