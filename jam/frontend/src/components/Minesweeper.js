@@ -37,6 +37,11 @@ class Minesweeper extends Component {
     messageHandler = (message) => {
         if (message['message-type'] == 'game-state') {
             this.setState({data: message, loaded: true});
+            if (message.is_loser) {
+                console.log('Lost!')
+            } else if (message.is_winner) {
+                console.log('Won')
+            }
         } else if (message['message-type'] == 'new-game'){
             // todo
         }

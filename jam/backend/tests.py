@@ -2,8 +2,8 @@ import json
 import numpy as np
 from django.test import TestCase
 from django.test.client import RequestFactory
-from backend.models import Minesweeper, count_adjacent_mines
-from backend.views import create_game, get_game, make_move
+from backend.models import Minesweeper
+from backend.views import create_game, load_game, clear_area
 
 class MinesweeperTest(TestCase):
     def setUp(self):
@@ -25,7 +25,7 @@ class MinesweeperTest(TestCase):
             [0, 2, 1]
         ])
 
-        assert np.array_equal(count_adjacent_mines(arr), expected)
+        assert np.array_equal(Minesweeper.count_adjacent_mines({},arr), expected)
 
     def test_flood_fill(self):
         '''
@@ -70,28 +70,23 @@ class MinesweeperTest(TestCase):
         new_game.generate_game(m=30, n=30, mines=10)
         assert new_game.uid
 
-    def test_create_game(self):
-        request = self.factory.get('/api/new-game')
-        response = create_game(request)
-        self.assertEqual(response.status_code, 302)
-
-    def test_get_game(self):
+    def test_load_game(self):
         new_game = Minesweeper.objects.create()
         new_game.generate_game(m=30, n=30, mines=10)
         new_game.save()
 
         request = self.factory.get(f'/api/games/{new_game.uid}')
-        response = get_game(request, new_game.uid)
+        response = load_game(request, new_game.uid)
         self.assertEqual(response.status_code, 200)
 
-    def test_make_move(self):
+    def test_clear_area(self):
         new_game = Minesweeper.objects.create()
         new_game.generate_game(m=30, n=30, mines=10)
         new_game.save()
 
         data = json.dumps({'i': 0, 'j': 0})
         request = self.factory.post(f'/api/games/{new_game.uid}/move', data, 'application/json')
-        response = make_move(request, new_game.uid)
+        response = clear_area(request, new_game.uid)
         self.assertEqual(response.status_code, 200)
 
     def test_flood_fill_from_move(self):
@@ -108,7 +103,7 @@ class MinesweeperTest(TestCase):
         # Submit a move
         data = json.dumps({'i': 2, 'j': 2})
         request = self.factory.post(f'/api/games/{new_game.uid}/move', data, 'application/json')
-        response = make_move(request, new_game.uid)
+        response = clear_area(request, new_game.uid)
 
         # Check if response is all 1s like expected
         new_game = Minesweeper.objects.get(uid=new_game.uid)

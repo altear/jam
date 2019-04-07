@@ -14,7 +14,6 @@ class Minesweeper(models.Model):
     uid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     # Records whether a cell is a mine or not. [not_mine: 0, mine: 1]
-    # todo consider generating map as game goes on? Guarantee first click doesn't hit mine.
     mine_positions = ArrayField(ArrayField(models.IntegerField()), null=True)
 
     # The cells whose values are visible to the player. [hidden: 0, visible: 1]
@@ -59,14 +58,17 @@ class Minesweeper(models.Model):
         self.visible_state = empty_array.tolist()
         self.flag_state = empty_array.tolist()
 
-        # Count the adjacent mines for each cell
-        self.neighbors = count_adjacent_mines(mine_positions).tolist()
+        # Count the adjacent mines for each cell. Pass mines as param in case we want to generate mines in the future
+        self.neighbors = self.count_adjacent_mines(mine_positions).tolist()
+
+        # todo make a is_first_move bool so the player cannot lose on their first turn
 
     def flood_fill_safe_cells(self, starting_point):
         '''
         Given a starting coordinate, make all surrounding cells that do not border a mine visible.
+        - Requires dimensions m > 2, n > 2 for m x n matrix
 
-        :param point: tuple(x, y)
+        :param point: tuple(i, j)
         :return:
         '''
 
@@ -194,12 +196,14 @@ class Minesweeper(models.Model):
 
         :return:
         '''
+
+        # todo: Arrays initialized multiple times. Look for how django loads model and create arrays once there.
         visible = np.array(self.visible_state)
         flagged = np.array(self.flag_state)
         mines = np.array(self.mine_positions)
 
         # If any of the flags are on cells that are not mines, the game is not over
-        if np.sum(np.multiply(mines, flagged)) > 0:
+        if not np.array_equal(mines, flagged):
             return False
 
         # If the player has revealed or flagged every possible position, then the union of visible and flagged squares
@@ -207,10 +211,34 @@ class Minesweeper(models.Model):
         # - If the players steps on a mine in the last round they still won't win due to the order game_end conditions
         #   are checked
         return np.array_equal(
-            visible | flagged,
+            np.bitwise_or(flagged.astype(bool), visible.astype(bool)),
             np.ones(shape=visible.shape)
         )
 
+    def count_adjacent_mines(self, mine_positions):
+        '''
+        Return an array that holds the counts to adjacent mines
+
+        :param mine_positions:
+        :return: adjacent_mines_count:
+        '''
+
+        # We count the adjacent mines by creating a stack of arrays from the game state. Each array is shifted in a
+        # different direction. In this way, we can count the adjacent mines for each cell by taking the sum over the
+        # stacked arrays.
+        stack = [
+            shift_up(mine_positions),
+            shift_down(mine_positions),
+            shift_left(mine_positions),
+            shift_right(mine_positions),
+            shift_left(shift_up(mine_positions)),
+            shift_left(shift_down(mine_positions)),
+            shift_right(shift_up(mine_positions)),
+            shift_right(shift_down(mine_positions)),
+        ]
+        return np.sum(np.stack(stack), axis=0)
+
+# todo consider moving array operations to new file
 def shift_down(arr):
     '''
     Returns a new array with each element shifted down
@@ -243,28 +271,4 @@ def shift_right(arr):
     :return:
     '''
     return np.c_[np.zeros(arr.shape[0]), arr[:, :-1]]  # shift matrix in direction  (0, -1)
-
-def count_adjacent_mines(mine_positions):
-    '''
-    Return an array that holds the counts to adjacent mines
-
-    :param mine_positions:
-    :return: adjacent_mines_count:
-    '''
-
-    # We count the adjacent mines by creating a stack of arrays from the game state. Each array is shifted in a
-    # different direction. In this way, we can count the adjacent mines for each cell by taking the sum over the
-    # stacked arrays.
-    stack = [
-        shift_up(mine_positions),
-        shift_down(mine_positions),
-        shift_left(mine_positions),
-        shift_right(mine_positions),
-        shift_left(shift_up(mine_positions)),
-        shift_left(shift_down(mine_positions)),
-        shift_right(shift_up(mine_positions)),
-        shift_right(shift_down(mine_positions)),
-    ]
-    return np.sum(np.stack(stack), axis=0)
-
 

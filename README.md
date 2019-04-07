@@ -15,14 +15,15 @@ pipenv run python manage.py runserver
 ## Usage
 
 ```
-pipenv run manage.py runserver
+pipenv run python manage.py runserver
 ```
 
 ## Requirements
 
 - PostgreSQL 11.2 - Stable
-- Python 3.6
+- Python
   - pipenv
+- Node 
 
 ## Installation
 
@@ -38,9 +39,22 @@ Install React dependencies with npm
 npm install .
 ```
 
-## Configuration
+### Building
+
+Create Django models 
+
+```
+pipenv run python manage.py makemigrations
+```
+
+Build main.js (React)
+
+```
+npm run dev
+```
 
 ### Database
+A Postgres database was used for this project
 
 Configure Django to use the database using the `config.json` file 
 
@@ -48,7 +62,7 @@ Postgres commands for creating user/database (change the password):
 
 ```
 psql
-CREATE USER jam WITH PASSWORD 'put_your_password_here' CREATEDB;
+CREATE USER jam WITH PASSWORD 'adsfasdfasf' CREATEDB;
 CREATE DATABASE jamdb WITH OWNER jam;
 ```
 

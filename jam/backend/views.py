@@ -41,9 +41,9 @@ def clear_area(request, game_uid):
         else:
             game.flood_fill_safe_cells((i,j))
 
-        # Check if player is winner
-        if game.has_won():
-            game.is_winner = True
+            # Check if player is winner
+            if game.has_won():
+                game.is_winner = True
 
         game.save(force_update=True)
         return load_game(request, game_uid)
