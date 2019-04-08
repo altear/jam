@@ -4,6 +4,8 @@ import PropTypes from "prop-types";
 class MinesweeperMenuItem extends Component {
     menuItemStyle = {
         width: '100%',
+        minWidth: '100px',
+        maxWidth: '180px',
         margin: '5px',
         backgroundColor: 'rgba(0,0,0,0.8)',
         display: 'flex',

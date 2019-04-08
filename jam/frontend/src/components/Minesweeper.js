@@ -12,6 +12,17 @@ class Minesweeper extends Component {
         justifyContent: 'center'
     }
 
+    titleStyle = {
+        width: '100%',
+        height: '50px',
+        display: 'flex',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        fontSize: '3em',
+        color: 'red',
+        paddingTop: '20px',
+        paddingBottom: '20px'
+    }
     minesweeperStyle = {
         minWidth: '600px',
         maxWidth: '1000px',
@@ -27,6 +38,7 @@ class Minesweeper extends Component {
     minesweeperGamePlaceholderStyle = {
         display: 'flex',
         flexGrow: '2',
+        marginTop: '40px',
         Width: '400px',
         Height: '400px',
         justifyContent: 'center'
@@ -57,6 +69,7 @@ class Minesweeper extends Component {
             return (
                 <div style={this.containerStyle}> 
                     <div style={this.minesweeperStyle}>
+                        <div style={this.titleStyle}> JAM </div>
                         <div style={this.minesweeperGamePlaceholderStyle}> 
                             <MinesweeperGame api={this.props.api} uri={this.state.uri}/>
                         </div>
@@ -70,6 +83,7 @@ class Minesweeper extends Component {
         return (   
             <div style={this.containerStyle}> 
                 <div style={this.minesweeperStyle}>
+                    <div style={this.titleStyle}> JAM </div>
                     <div style={this.minesweeperGamePlaceholderStyle}></div>
                     <MinesweeperMenu api={this.props.api} updateUri={this.updateUri}/> 
                 </div>
