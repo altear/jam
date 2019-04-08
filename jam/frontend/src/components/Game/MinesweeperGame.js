@@ -50,6 +50,8 @@ class MinesweeperGame extends Component {
     constructor(props){
         super(props)
         this.state = {
+            isWinner: false,
+            isLoser: false,
             data: {},
             loaded: false,
             uri: this.props.uri // we use this to force render from children
@@ -146,12 +148,13 @@ class MinesweeperGame extends Component {
 
     // We've modularized this to make the render() function a little cleaner. Only call when the game is over
     getGameOverMessage = () => {
-        if (this.is_winner) {
+        if (this.state.data.is_winner) {
             return "You Won!"
         } else {
             return "You Lost!"
         } 
     }
+
     render () {
         // Game hasn't loaded
         if (this.state.loaded == false) {
