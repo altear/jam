@@ -54,14 +54,13 @@ class Minesweeper extends Component {
     render () {
         // If there is a game URI in the current URL, load the game
         if (this.state.uri != '') {
-            console.log('Container redrawing: ' + this.state.uri)
             return (
                 <div style={this.containerStyle}> 
                     <div style={this.minesweeperStyle}>
                         <div style={this.minesweeperGamePlaceholderStyle}> 
                             <MinesweeperGame api={this.props.api} uri={this.state.uri}/>
                         </div>
-                        <MinesweeperMenu  api={this.props.api} updateUri={this.updateUri}/> 
+                        <MinesweeperMenu api={this.props.api} updateUri={this.updateUri}/> 
                     </div>
                 </div>
             )
@@ -71,8 +70,8 @@ class Minesweeper extends Component {
         return (   
             <div style={this.containerStyle}> 
                 <div style={this.minesweeperStyle}>
-                    <div style={this.minesweeperGamePlaceholderStyle}></div> // Place holder
-                    <MinesweeperMenu api={this.props.api}/> 
+                    <div style={this.minesweeperGamePlaceholderStyle}></div>
+                    <MinesweeperMenu api={this.props.api} updateUri={this.updateUri}/> 
                 </div>
             </div>
         );
