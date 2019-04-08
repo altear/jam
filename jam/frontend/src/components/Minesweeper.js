@@ -1,154 +1,82 @@
 import React, { Component } from "react";
-import GridCell from "./GridCell";
-import key from "weak-key";
-import axios from 'axios';
-
-// These tokens need to be sent in Post request to Django
-axios.defaults.xsrfCookieName = 'csrftoken'
-axios.defaults.xsrfHeaderName = 'X-CSRFToken'
-
-let gameContainerStyle = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignContent: 'center',
-    flexDirection: 'row'
-}
-
-let menuContainerStyle = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column'
-}
+import PropTypes from "prop-types";
+import MinesweeperMenu from "./Menu/MinesweeperMenu"
+import MinesweeperGame from "./Game/MinesweeperGame"
 
 class Minesweeper extends Component {
+    containerStyle = {
+        width: '100%',
+        minWidth: '600px',
+        height: '100%',
+        display: 'flex',
+        justifyContent: 'center'
+    }
+
+    minesweeperStyle = {
+        minWidth: '600px',
+        maxWidth: '1000px',
+        height: '100%',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'row-reverse',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        backgroundColor: 'rgba(0,0,0,0.3)'
+    }
+
+    minesweeperGamePlaceholderStyle = {
+        display: 'flex',
+        flexGrow: '2',
+        Width: '400px',
+        Height: '400px',
+        justifyContent: 'center'
+    }
+
+    static propTypes = {
+        api: PropTypes.string
+    }
+
     constructor(props){
-        super(props);
-        
+        super(props)
         this.state = {
-          data: {},
-          loaded: false
+            // Initialize the state uri to the prop's uri
+            uri: this.props.uri 
         };
-      }
-
-    /*
-     * Handles cases such as winning, losing, and updating the game view
-     */
-    messageHandler = (message) => {
-        if (message['message-type'] == 'game-state') {
-            this.setState({data: message, loaded: true});
-            if (message.is_loser) {
-                console.log('Lost!')
-            } else if (message.is_winner) {
-                console.log('Won')
-            }
-        } else if (message['message-type'] == 'new-game'){
-            // todo
-        }
     }
 
-    /*
-     * Runs when the component first mounds
-     */
-    componentDidMount() {
-        fetch(this.props.gameURI)
-            .then(response => response.json())
-            .then(this.messageHandler)
+    // This allows menu items to update gameUri without reloading page
+    updateUri = (newUri) => {
+        console.log('New uri: ' + newUri)
+        this.setState({uri: newUri})
+        history.pushState(null, '', '/games/' + newUri);    
     }
 
-    /*
-     * Clear an area of mines and get the new game state
-     */
-    clearArea(index, value) {
-        axios.post(this.props.gameURI + '/clear-area/', {i: index[0], j:index[1]})
-            .then((response) => response.data) 
-            .then(this.messageHandler); 
-    }   
-
-    /*
-     * What happens if you miss?
-     */
-    plantFlag(index, value) {
-        axios.post(this.props.gameURI + '/plant-flag/', {i: index[0], j:index[1]})
-            .then((response) => response.data) 
-            .then(this.messageHandler);  
-    }   
-
-    /*
-     * Create the grid of mines
-     */
-    createGrid() {
-        let table = []
-
-        // Get array dimentions
-        let m = this.state.data.view.length
-        let n = this.state.data.view[0].length
-        
-        // Create grid, populate with GridCell
-        for (let i = 0; i < m; i++) {
-            let children = []
-            for (let j = 0; j < n; j++) {
-                let display = this.state.data.view[i][j]
-                children.push(
-                    <GridCell 
-                        key={key([i,j,display])} 
-                        index={[i, j]} 
-                        clearArea={this.clearArea.bind(this)} 
-                        plantFlag={this.plantFlag.bind(this)} 
-                        display={display} />
-                ) 
-            }     
-            table.push(<tr key={key([i])} >{children}</tr>)  
-        }
-        return table
-    }
-    
-    /*
-     * Redirect to new game (super hacky)
-     */
-    newGame = () => {
-        fetch("/api/create-large-game")
-            .then((response) => response.json())
-            .then((data) => window.location.href = "/games/" + data.uuid)
-    }
-
-    /* 
-     * Render this component and its children
-     */
-    render() {
-        if (!this.state.loaded) {
-            return (<p> Your game is almost ready </p>)
-        } 
-
-        if (this.state.data.is_loser || this.state.data.is_winner){
-            // Game has finished
+    render () {
+        // If there is a game URI in the current URL, load the game
+        if (this.state.uri != '') {
+            console.log('Container redrawing: ' + this.state.uri)
             return (
-                <div style={menuContainerStyle}>
-                    <h1> Game Over! Another one bites the dust. </h1> 
-                    <button onClick={this.newGame}> Play Again? </button>
-
-                    <div style={gameContainerStyle}>
-                        <table>
-                            <tbody>
-                                {this.createGrid()}
-                            </tbody>
-                        </table>
+                <div style={this.containerStyle}> 
+                    <div style={this.minesweeperStyle}>
+                        <div style={this.minesweeperGamePlaceholderStyle}> 
+                            <MinesweeperGame api={this.props.api} uri={this.state.uri}/>
+                        </div>
+                        <MinesweeperMenu  api={this.props.api} updateUri={this.updateUri}/> 
                     </div>
-                </div>  
+                </div>
             )
         }
 
-        // If the game is still going on
-        return (
-            <div style={gameContainerStyle}>
-                <table>
-                    <tbody>
-                        {this.createGrid()}
-                    </tbody>
-                </table>
+        // If there is no URI
+        return (   
+            <div style={this.containerStyle}> 
+                <div style={this.minesweeperStyle}>
+                    <div style={this.minesweeperGamePlaceholderStyle}></div> // Place holder
+                    <MinesweeperMenu api={this.props.api}/> 
+                </div>
             </div>
-        )
+        );
     }
 }
-export default Minesweeper;
 
+export default Minesweeper;

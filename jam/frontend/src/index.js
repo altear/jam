@@ -1,1 +1,1 @@
-import App from "./components/MinesweeperApp";
+import App from "./components/App";

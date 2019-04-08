@@ -81,10 +81,10 @@ def create_game(m, n, mines):
     }
 
 def create_small_game(request):
-    return JsonResponse(create_game(8, 8, 8))
+    return JsonResponse(create_game(8, 8, 12))
 
 def create_medium_game(request):
-    return JsonResponse(create_game(15, 15, 25))
+    return JsonResponse(create_game(15, 15, 40))
 
 def create_large_game(request):
-    return JsonResponse(create_game(30, 30, 150))
+    return JsonResponse(create_game(25, 25, 80))

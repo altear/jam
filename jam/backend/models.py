@@ -25,11 +25,14 @@ class Minesweeper(models.Model):
     # The count of neighboring mines surrounding each cell.
     neighbors = ArrayField(ArrayField(models.IntegerField()), null=True)
 
-    # hah. hah. hah. hah. hah.
+    # Has the player lost?
     is_loser = models.BooleanField(default=False)
 
-    # yeah right.
+    # Has the player won?
     is_winner = models.BooleanField(default=False)
+
+    # Is it the player's first move? The player should never lose on their first move
+    is_first_move =  models.BooleanField(default=True)
 
     def flood_fill_safe_cells(self, starting_position):
         '''
@@ -153,6 +156,31 @@ class Minesweeper(models.Model):
             np.ones(shape=visible.shape)
         )
 
+    def make_first_turn_safe(self, position):
+        '''
+        Player cannot die on first turn. All mines will run away
+        :param position:
+        '''
+
+        # Player cannot step on a mine on the first turn
+        if self.is_mine_at_position(position):
+            print('moving mine')
+
+            # Create a new mine
+            mine_positions = np.array(self.mine_positions)
+            possible_new_positions = np.argwhere(mine_positions == 0)
+            new_mine_position = possible_new_positions[np.random.randint(0, possible_new_positions.shape[0])]
+            new_i, new_j = new_mine_position
+            self.mine_positions[new_i][new_j] = 1
+
+            # Get rid of the mine at the current position
+            i, j = position
+            self.mine_positions[i][j] = 0
+
+            # Update neighbor positions
+            mine_positions = np.array(self.mine_positions) # reload
+            self.count_adjacent_mines(mine_positions).tolist()
+
     def is_game_over(self):
         return self.is_winner or self.is_loser
 
@@ -191,7 +219,12 @@ class Minesweeper(models.Model):
         if self.is_game_over() or not self.is_valid_clear_area_position(position):
             return
 
-        # Player clicked on a mine - player dies.
+        # Is it the pleyer's first move? If so, then move a mine if it appears under player
+        if self.is_first_move:
+            self.is_first_move = False
+            self.make_first_turn_safe(position)
+
+        # Player has clicked on a mine
         if self.is_mine_at_position(position):
             self.is_loser = True
             return
