@@ -181,6 +181,9 @@ class Minesweeper(models.Model):
             mine_positions = np.array(self.mine_positions) # reload
             self.count_adjacent_mines(mine_positions).tolist()
 
+            # Force update
+            self.save(force_update=True)
+
     def is_game_over(self):
         return self.is_winner or self.is_loser
 
